@@ -280,8 +280,7 @@
         const SUPABASE_URL = "https://zqxeoveanevsvynptckm.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxeGVvdmVhbmV2c3Z5bnB0Y2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNzUzODEsImV4cCI6MjA4OTg1MTM4MX0.eeIaytpW1wtWPJc2FbhufkDkhONUt9yypTZU4dTVmsM";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const CLOUD_NAME = "dqncj2lg2"; 
-        const UPLOAD_PRESET = "katalogdanstok"; 
+        const SUPABASE_BUCKET = "katalog-muflih";
 
         let localData = [];
         let showPhotos = false;
@@ -456,19 +455,38 @@
                     const imgTag = item.querySelector('img');
                     const src = imgTag.getAttribute('src');
 
+                    // Jika src sudah berupa http (gambar lama saat mode edit), langsung gunakan URL-nya
                     if (src.startsWith('http')) {
                         finalUrls.push(src);
                     } else {
+                        // Jika gambar baru, proses upload ke Supabase Storage
                         const fileName = item.dataset.fileName;
                         const fileMatch = filesFromInput.find(f => f.name === fileName);
                         if (fileMatch) {
+                            // 1. Kompres gambar secara lokal
                             const blob = await compressImage(fileMatch);
-                            const formData = new FormData();
-                            formData.append('file', blob);
-                            formData.append('upload_preset', UPLOAD_PRESET);
-                            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
-                            const d = await res.json();
-                            finalUrls.push(d.secure_url);
+                            
+                            // 2. Buat nama file yang unik untuk menghindari duplikasi
+                            const uniqueFileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.jpg`;
+                            const filePath = `public/${uniqueFileName}`;
+
+                            // 3. Upload blob hasil kompresi langsung ke Supabase Storage
+                            const { data, error } = await _supabase.storage
+                                .from(SUPABASE_BUCKET)
+                                .upload(filePath, blob, {
+                                    cacheControl: '3600',
+                                    upsert: false,
+                                    contentType: 'image/jpeg'
+                                });
+
+                            if (error) throw error;
+
+                            // 4. Dapatkan Public URL langsung dari Supabase
+                            const { data: publicUrlData } = _supabase.storage
+                                .from(SUPABASE_BUCKET)
+                                .getPublicUrl(filePath);
+
+                            finalUrls.push(publicUrlData.publicUrl);
                         }
                     }
                 }
@@ -480,16 +498,20 @@
                     harga_promo: Number(document.getElementById('harga_promo').value) || null,
                     is_promo: Number(document.getElementById('harga_promo').value) > 0,
                     deskripsi: document.getElementById('deskripsi').value,
-                    image: finalUrls.join(',')
+                    image: finalUrls.join(',') // Menyimpan URL Supabase ke database
                 };
 
-                if (editId) await _supabase.from('products').update(payload).eq('id', editId);
-                else await _supabase.from('products').insert([payload]);
+                if (editId) {
+                    await _supabase.from('products').update(payload).eq('id', editId);
+                } else {
+                    await _supabase.from('products').insert([payload]);
+                }
 
                 resetForm();
                 fetchData();
             } catch (err) {
                 alert("Gagal: " + err.message);
+            } finally {
                 setLoader(false);
             }
         };
