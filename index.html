@@ -211,11 +211,10 @@
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted">KATEGORI</label>
-                            <select id="kategori" class="form-select" required>
-                                <option value="Basic">Basic</option>
-                                <option value="Premium">Premium</option>
-                                <option value="Eksklusif">Eksklusif</option>
-                            </select>
+                            <input type="text" id="kategori" class="form-control" list="kategoriList" placeholder="Ketik baru atau pilih yang ada..." autocomplete="off" required>
+<datalist id="kategoriList">
+    <!-- Opsi kategori akan dimuat otomatis oleh Javascript -->
+</datalist>
                         </div>
 
                         <div class="row g-2 mb-3">
@@ -228,6 +227,18 @@
                                 <input type="number" id="harga_promo" class="form-control" placeholder="Opsional">
                             </div>
                         </div>
+
+                        <!-- Tambahkan tepat di bawah penutup </div> dari row harga dan harga_promo -->
+<div class="row g-2 mb-3">
+    <div class="col-6">
+        <label class="form-label small fw-bold text-muted">MIN. PEMESANAN PROMO</label>
+        <input type="number" id="min_promo" class="form-control" value="1" min="1">
+    </div>
+    <div class="col-6">
+        <label class="form-label small fw-bold text-muted">MAX. PEMESANAN PROMO</label>
+        <input type="number" id="max_promo" class="form-control" placeholder="Tanpa Batas (Kosongkan)">
+    </div>
+</div>
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted">DESKRIPSI PRODUK</label>
@@ -301,17 +312,43 @@
     render(document.getElementById('searchInput').value); // Tambahkan ini agar list me-render ulang
 });
 
+// Fungsi untuk memuat daftar kategori unik ke dalam datalist
+function updateKategoriList() {
+    const datalist = document.getElementById('kategoriList');
+    datalist.innerHTML = ''; // Kosongkan daftar sebelumnya
+
+    // 1. Ambil semua data kategori, abaikan yang kosong (null/undefined)
+    const semuaKategori = localData.map(item => item.kategori).filter(Boolean);
+    
+    // 2. Buat menjadi unik (hilangkan nama kategori yang ganda)
+    const kategoriUnik = [...new Set(semuaKategori)];
+    
+    // 3. Urutkan sesuai abjad A-Z
+    kategoriUnik.sort();
+
+    // 4. Masukkan ke dalam elemen datalist HTML
+    kategoriUnik.forEach(kat => {
+        const option = document.createElement('option');
+        option.value = kat;
+        datalist.appendChild(option);
+    });
+}
+
         function setLoader(show, text = "Memuat...") {
             document.getElementById('loader').classList.toggle('hidden', !show);
             document.getElementById('loaderText').innerText = text;
         }
 
-        async function fetchData() {
-            setLoader(true);
-            const { data, error } = await _supabase.from('products').select('*').order('created_at', { ascending: false });
-            if (!error) { localData = data || []; render(); }
-            setLoader(false);
-        }
+      async function fetchData() {
+    setLoader(true);
+    const { data, error } = await _supabase.from('products').select('*').order('created_at', { ascending: false });
+    if (!error) { 
+        localData = data || []; 
+        render(); 
+        updateKategoriList(); // <-- Tambahkan baris ini di sini
+    }
+    setLoader(false);
+}
 
         function render(q = "") {
     const container = document.getElementById('gridContainer');
@@ -498,7 +535,9 @@
                     harga_promo: Number(document.getElementById('harga_promo').value) || null,
                     is_promo: Number(document.getElementById('harga_promo').value) > 0,
                     deskripsi: document.getElementById('deskripsi').value,
-                    image: finalUrls.join(',') // Menyimpan URL Supabase ke database
+                    image: finalUrls.join(','), // Menyimpan URL Supabase ke database
+                    min_pemesanan_promo: Number(document.getElementById('min_promo').value) || 1,
+    max_pemesanan_promo: Number(document.getElementById('max_promo').value) || null
                 };
 
                 if (editId) {
@@ -525,6 +564,8 @@
             document.getElementById('kategori').value = p.kategori;
             document.getElementById('harga').value = p.harga;
             document.getElementById('harga_promo').value = p.harga_promo || '';
+            document.getElementById('min_promo').value = p.min_pemesanan_promo || 1;
+    document.getElementById('max_promo').value = p.max_pemesanan_promo || '';
             document.getElementById('deskripsi').value = p.deskripsi || '';
             
             const grid = document.getElementById('imagePreviewGrid');
