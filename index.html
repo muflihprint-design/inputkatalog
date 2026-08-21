@@ -24,6 +24,20 @@
             min-height: 100vh;
         }
         
+        /* OVERLAY LOGIN STYLE */
+        #loginOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .main-card { 
             background: white; 
             padding: 25px; 
@@ -47,14 +61,13 @@
         .img-container {
             height: 200px;
             background: #f1f5f9;
-            display: none; /* Default Sembunyi */
+            display: none;
             align-items: center;
             justify-content: center;
             overflow: hidden;
             position: relative;
         }
 
-        /* Class untuk menampilkan foto */
         .show-photos .img-container {
             display: flex;
         }
@@ -172,7 +185,6 @@
             border-radius: 12px;
         }
 
-        /* Toggle Switch Styling */
         .form-check-input:checked {
             background-color: var(--primary);
             border-color: var(--primary);
@@ -181,7 +193,32 @@
 </head>
 <body>
 
-    <div id="loader" class="loading-overlay">
+    <!-- OVERLAY LOGIN SECTION -->
+    <div id="loginOverlay">
+        <div class="card shadow-lg border-0" style="width: 100%; max-width: 400px; border-radius: 20px;">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <h3 class="fw-800 text-primary mb-1">LOGIN ADMIN</h3>
+                    <p class="text-muted small">Katalog Produk Muflih Print</p>
+                </div>
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">USERNAME</label>
+                        <input type="text" id="loginUser" class="form-control" autocomplete="off" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted">PASSWORD</label>
+                        <input type="password" id="loginPass" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">MASUK</button>
+                    <div id="loginError" class="text-danger text-center mt-3 small fw-bold hidden">Username atau Password salah!</div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="loader" class="loading-overlay hidden">
         <div class="spinner-border text-primary mb-3" role="status"></div>
         <h5 class="fw-bold" id="loaderText">Menghubungkan...</h5>
     </div>
@@ -212,9 +249,9 @@
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted">KATEGORI</label>
                             <input type="text" id="kategori" class="form-control" list="kategoriList" placeholder="Ketik baru atau pilih yang ada..." autocomplete="off" required>
-<datalist id="kategoriList">
-    <!-- Opsi kategori akan dimuat otomatis oleh Javascript -->
-</datalist>
+                            <datalist id="kategoriList">
+                                <!-- Opsi kategori dimuat otomatis -->
+                            </datalist>
                         </div>
 
                         <div class="row g-2 mb-3">
@@ -228,17 +265,16 @@
                             </div>
                         </div>
 
-                        <!-- Tambahkan tepat di bawah penutup </div> dari row harga dan harga_promo -->
-<div class="row g-2 mb-3">
-    <div class="col-6">
-        <label class="form-label small fw-bold text-muted">MIN. PEMESANAN PROMO</label>
-        <input type="number" id="min_promo" class="form-control" value="1" min="1">
-    </div>
-    <div class="col-6">
-        <label class="form-label small fw-bold text-muted">MAX. PEMESANAN PROMO</label>
-        <input type="number" id="max_promo" class="form-control" placeholder="Tanpa Batas (Kosongkan)">
-    </div>
-</div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-muted">MIN. PEMESANAN PROMO</label>
+                                <input type="number" id="min_promo" class="form-control" value="1" min="1">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-muted">MAX. PEMESANAN PROMO</label>
+                                <input type="number" id="max_promo" class="form-control" placeholder="Tanpa Batas (Kosongkan)">
+                            </div>
+                        </div>
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted">DESKRIPSI PRODUK</label>
@@ -273,7 +309,6 @@
                     </div>
                     
                     <div class="d-flex align-items-center gap-3">
-                        <!-- Toggle Foto -->
                         <div class="form-check form-switch bg-white px-3 py-2 rounded-3 shadow-sm border">
                             <input class="form-check-input ms-0 me-2" type="checkbox" id="togglePhoto">
                             <label class="form-check-label small fw-bold text-muted" for="togglePhoto">TAMPILKAN FOTO</label>
@@ -288,15 +323,40 @@
     </div>
 
     <script>
+        // LOGIKA LOGIN
+        document.addEventListener('DOMContentLoaded', () => {
+            if (sessionStorage.getItem('isLoggedIn') === 'true') {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                fetchData(); // Hanya load data jika sudah login
+            }
+        });
+
+        document.getElementById('loginForm').onsubmit = (e) => {
+            e.preventDefault();
+            const user = document.getElementById('loginUser').value;
+            const pass = document.getElementById('loginPass').value;
+            
+            if (user === 'muflihvip' && pass === '123456') {
+                sessionStorage.setItem('isLoggedIn', 'true');
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('loginError').classList.add('hidden');
+                fetchData(); // Load data setelah login berhasil
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        };
+
+        // KONFIGURASI SUPABASE & CLOUDINARY
         const SUPABASE_URL = "https://zqxeoveanevsvynptckm.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxeGVvdmVhbmV2c3Z5bnB0Y2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNzUzODEsImV4cCI6MjA4OTg1MTM4MX0.eeIaytpW1wtWPJc2FbhufkDkhONUt9yypTZU4dTVmsM";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const SUPABASE_BUCKET = "katalog-muflih";
+        const CLOUD_NAME = "dqncj2lg2"; 
+        const UPLOAD_PRESET = "katalogdanstok"; 
 
         let localData = [];
         let showPhotos = false;
 
-        // Inisialisasi SortableJS
+        // INISIALISASI
         const el = document.getElementById('imagePreviewGrid');
         const sortable = Sortable.create(el, {
             animation: 150,
@@ -304,113 +364,103 @@
             onEnd: () => updatePreviewLabels()
         });
 
-        window.onload = () => { fetchData(); lucide.createIcons(); };
+        window.onload = () => { 
+            lucide.createIcons(); 
+            // fetchData dipanggil di event login agar loader tidak muncul di balik layar login
+        };
 
-        // Toggle Foto Logic
         document.getElementById('togglePhoto').addEventListener('change', (e) => {
-    showPhotos = e.target.checked;
-    render(document.getElementById('searchInput').value); // Tambahkan ini agar list me-render ulang
-});
+            showPhotos = e.target.checked;
+            render(document.getElementById('searchInput').value);
+        });
 
-// Fungsi untuk memuat daftar kategori unik ke dalam datalist
-function updateKategoriList() {
-    const datalist = document.getElementById('kategoriList');
-    datalist.innerHTML = ''; // Kosongkan daftar sebelumnya
-
-    // 1. Ambil semua data kategori, abaikan yang kosong (null/undefined)
-    const semuaKategori = localData.map(item => item.kategori).filter(Boolean);
-    
-    // 2. Buat menjadi unik (hilangkan nama kategori yang ganda)
-    const kategoriUnik = [...new Set(semuaKategori)];
-    
-    // 3. Urutkan sesuai abjad A-Z
-    kategoriUnik.sort();
-
-    // 4. Masukkan ke dalam elemen datalist HTML
-    kategoriUnik.forEach(kat => {
-        const option = document.createElement('option');
-        option.value = kat;
-        datalist.appendChild(option);
-    });
-}
+        function updateKategoriList() {
+            const datalist = document.getElementById('kategoriList');
+            datalist.innerHTML = ''; 
+            const semuaKategori = localData.map(item => item.kategori).filter(Boolean);
+            const kategoriUnik = [...new Set(semuaKategori)];
+            kategoriUnik.sort();
+            kategoriUnik.forEach(kat => {
+                const option = document.createElement('option');
+                option.value = kat;
+                datalist.appendChild(option);
+            });
+        }
 
         function setLoader(show, text = "Memuat...") {
             document.getElementById('loader').classList.toggle('hidden', !show);
             document.getElementById('loaderText').innerText = text;
         }
 
-      async function fetchData() {
-    setLoader(true);
-    const { data, error } = await _supabase.from('products').select('*').order('created_at', { ascending: false });
-    if (!error) { 
-        localData = data || []; 
-        render(); 
-        updateKategoriList(); // <-- Tambahkan baris ini di sini
-    }
-    setLoader(false);
-}
-
-        function render(q = "") {
-    const container = document.getElementById('gridContainer');
-    container.innerHTML = '';
-    
-    container.classList.toggle('show-photos', showPhotos);
-
-    const filtered = localData.filter(p => p.nama.toLowerCase().includes(q.toLowerCase()));
-    document.getElementById('counter').innerText = `${filtered.length} Item`;
-
-    filtered.forEach(p => {
-        const images = p.image ? p.image.split(',') : [];
-        const hasPromo = p.is_promo === true;
-        
-        let imgContent = "";
-        
-        if (showPhotos) {
-            const mainImg = images[0] || 'https://via.placeholder.com/300?text=No+Image';
-            imgContent = `
-                <img src="${mainImg}" onerror="this.src='https://via.placeholder.com/300?text=No+Image'">
-                ${images.length > 1 ? `<div class="multi-indicator">+${images.length} Gambar</div>` : ''}
-            `;
-        } else {
-            imgContent = `
-                <div class="d-flex flex-column align-items-center justify-content-center h-100 w-100 text-center px-2" style="background: #f1f5f9;">
-                    <i data-lucide="image-off" class="text-muted mb-2" size="20"></i>
-                    <span class="fw-bold text-dark text-uppercase" style="font-size: 0.65rem; line-height: 1.2;">
-                        ${p.nama}
-                    </span>
-                </div>
-            `;
+        async function fetchData() {
+            setLoader(true);
+            const { data, error } = await _supabase.from('products').select('*').order('created_at', { ascending: false });
+            if (!error) { 
+                localData = data || []; 
+                render(); 
+                updateKategoriList(); 
+            }
+            setLoader(false);
         }
 
-        const col = document.createElement('div');
-        col.className = 'col-md-4 col-sm-6';
-        col.innerHTML = `
-            <div class="product-card shadow-sm">
-                ${hasPromo ? '<div class="promo-badge">PROMO</div>' : ''}
-                <div class="action-btns">
-                    <button class="btn btn-sm btn-light border" onclick="editProduct('${p.id}')"><i data-lucide="edit-3" size="14"></i></button>
-                    <button class="btn btn-sm btn-light border text-danger" onclick="deleteProduct('${p.id}')"><i data-lucide="trash" size="14"></i></button>
-                </div>
-                <div class="img-container" style="display: flex !important;"> 
-                    ${imgContent}
-                </div>
-                <div class="p-3">
-                    <h6 class="fw-bold mb-1 text-truncate">${p.nama}</h6>
-                    <div class="mb-0">
-                        ${hasPromo ? 
-                            `<span class="text-primary fw-bold">Rp${parseInt(p.harga_promo).toLocaleString()}</span>
-                             <small class="text-muted text-decoration-line-through ms-1" style="font-size: 0.7rem;">Rp${parseInt(p.harga).toLocaleString()}</small>` : 
-                            `<span class="text-primary fw-bold">Rp${parseInt(p.harga).toLocaleString()}</span>`
-                        }
+        function render(q = "") {
+            const container = document.getElementById('gridContainer');
+            container.innerHTML = '';
+            container.classList.toggle('show-photos', showPhotos);
+
+            const filtered = localData.filter(p => p.nama.toLowerCase().includes(q.toLowerCase()));
+            document.getElementById('counter').innerText = `${filtered.length} Item`;
+
+            filtered.forEach(p => {
+                const images = p.image ? p.image.split(',') : [];
+                const hasPromo = p.is_promo === true;
+                let imgContent = "";
+                
+                if (showPhotos) {
+                    const mainImg = images[0] || 'https://via.placeholder.com/300?text=No+Image';
+                    imgContent = `
+                        <img src="${mainImg}" onerror="this.src='https://via.placeholder.com/300?text=No+Image'">
+                        ${images.length > 1 ? `<div class="multi-indicator">+${images.length} Gambar</div>` : ''}
+                    `;
+                } else {
+                    imgContent = `
+                        <div class="d-flex flex-column align-items-center justify-content-center h-100 w-100 text-center px-2" style="background: #f1f5f9;">
+                            <i data-lucide="image-off" class="text-muted mb-2" size="20"></i>
+                            <span class="fw-bold text-dark text-uppercase" style="font-size: 0.65rem; line-height: 1.2;">
+                                ${p.nama}
+                            </span>
+                        </div>
+                    `;
+                }
+
+                const col = document.createElement('div');
+                col.className = 'col-md-4 col-sm-6';
+                col.innerHTML = `
+                    <div class="product-card shadow-sm">
+                        ${hasPromo ? '<div class="promo-badge">PROMO</div>' : ''}
+                        <div class="action-btns">
+                            <button class="btn btn-sm btn-light border" onclick="editProduct('${p.id}')"><i data-lucide="edit-3" size="14"></i></button>
+                            <button class="btn btn-sm btn-light border text-danger" onclick="deleteProduct('${p.id}')"><i data-lucide="trash" size="14"></i></button>
+                        </div>
+                        <div class="img-container" style="display: flex !important;"> 
+                            ${imgContent}
+                        </div>
+                        <div class="p-3">
+                            <h6 class="fw-bold mb-1 text-truncate">${p.nama}</h6>
+                            <div class="mb-0">
+                                ${hasPromo ? 
+                                    `<span class="text-primary fw-bold">Rp${parseInt(p.harga_promo).toLocaleString()}</span>
+                                     <small class="text-muted text-decoration-line-through ms-1" style="font-size: 0.7rem;">Rp${parseInt(p.harga).toLocaleString()}</small>` : 
+                                    `<span class="text-primary fw-bold">Rp${parseInt(p.harga).toLocaleString()}</span>`
+                                }
+                            </div>
+                        </div>
                     </div>
-                    </div>
-            </div>
-        `;
-        container.appendChild(col);
-    });
-    
-    lucide.createIcons();
-}
+                `;
+                container.appendChild(col);
+            });
+            lucide.createIcons();
+        }
       
         function updatePreviewLabels() {
             const items = document.querySelectorAll('.preview-item');
@@ -492,38 +542,19 @@ function updateKategoriList() {
                     const imgTag = item.querySelector('img');
                     const src = imgTag.getAttribute('src');
 
-                    // Jika src sudah berupa http (gambar lama saat mode edit), langsung gunakan URL-nya
                     if (src.startsWith('http')) {
                         finalUrls.push(src);
                     } else {
-                        // Jika gambar baru, proses upload ke Supabase Storage
                         const fileName = item.dataset.fileName;
                         const fileMatch = filesFromInput.find(f => f.name === fileName);
                         if (fileMatch) {
-                            // 1. Kompres gambar secara lokal
                             const blob = await compressImage(fileMatch);
-                            
-                            // 2. Buat nama file yang unik untuk menghindari duplikasi
-                            const uniqueFileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.jpg`;
-                            const filePath = `public/${uniqueFileName}`;
-
-                            // 3. Upload blob hasil kompresi langsung ke Supabase Storage
-                            const { data, error } = await _supabase.storage
-                                .from(SUPABASE_BUCKET)
-                                .upload(filePath, blob, {
-                                    cacheControl: '3600',
-                                    upsert: false,
-                                    contentType: 'image/jpeg'
-                                });
-
-                            if (error) throw error;
-
-                            // 4. Dapatkan Public URL langsung dari Supabase
-                            const { data: publicUrlData } = _supabase.storage
-                                .from(SUPABASE_BUCKET)
-                                .getPublicUrl(filePath);
-
-                            finalUrls.push(publicUrlData.publicUrl);
+                            const formData = new FormData();
+                            formData.append('file', blob);
+                            formData.append('upload_preset', UPLOAD_PRESET);
+                            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
+                            const d = await res.json();
+                            finalUrls.push(d.secure_url);
                         }
                     }
                 }
@@ -535,22 +566,18 @@ function updateKategoriList() {
                     harga_promo: Number(document.getElementById('harga_promo').value) || null,
                     is_promo: Number(document.getElementById('harga_promo').value) > 0,
                     deskripsi: document.getElementById('deskripsi').value,
-                    image: finalUrls.join(','), // Menyimpan URL Supabase ke database
+                    image: finalUrls.join(','),
                     min_pemesanan_promo: Number(document.getElementById('min_promo').value) || 1,
-    max_pemesanan_promo: Number(document.getElementById('max_promo').value) || null
+                    max_pemesanan_promo: Number(document.getElementById('max_promo').value) || null
                 };
 
-                if (editId) {
-                    await _supabase.from('products').update(payload).eq('id', editId);
-                } else {
-                    await _supabase.from('products').insert([payload]);
-                }
+                if (editId) await _supabase.from('products').update(payload).eq('id', editId);
+                else await _supabase.from('products').insert([payload]);
 
                 resetForm();
                 fetchData();
             } catch (err) {
                 alert("Gagal: " + err.message);
-            } finally {
                 setLoader(false);
             }
         };
@@ -565,7 +592,7 @@ function updateKategoriList() {
             document.getElementById('harga').value = p.harga;
             document.getElementById('harga_promo').value = p.harga_promo || '';
             document.getElementById('min_promo').value = p.min_pemesanan_promo || 1;
-    document.getElementById('max_promo').value = p.max_pemesanan_promo || '';
+            document.getElementById('max_promo').value = p.max_pemesanan_promo || '';
             document.getElementById('deskripsi').value = p.deskripsi || '';
             
             const grid = document.getElementById('imagePreviewGrid');
